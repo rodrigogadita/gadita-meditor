@@ -31,8 +31,8 @@ const dados = {
     compactacoes: [],
     ferramentas: [['Read', 58], ['Edit', 31], ['Bash', 24], ['Grep', 19], ['Write', 7], ['Agent', 3]],
     alertas: [
-      { nivel: 'amarelo', id: 'aviso', titulo: 'Contexto crescendo', detalhe: `${Math.round(atual / 1000)}k na janela; o handoff chega em 200k.`, acao: 'Feche a tarefa atual antes de começar outra.' },
-      { nivel: 'amarelo', id: 'saida-grande', titulo: 'Resultado grande entrou no contexto', detalhe: 'Um único passo adicionou 34k.', acao: 'Peça saída filtrada (grep, head) ou use um subagente para logs, testes e documentação.' },
+      { nivel: 'amarelo', id: 'aviso', titulo: 'Contexto crescendo', detalhe: `${Math.round(atual / 1000)}k na janela; o handoff chega em 200k.`, acao: 'Feche a tarefa atual antes de começar outra.', aplicar: null },
+      { nivel: 'amarelo', id: 'saida-grande', titulo: 'Resultado grande entrou no contexto', detalhe: 'Um único passo adicionou 34k.', acao: 'Peça saída filtrada (grep, head) ou use um subagente para logs, testes e documentação.', aplicar: 'subagente' },
     ],
     economia: { real: 9.8e6, sim: 7.9e6 },
   },

@@ -2,7 +2,7 @@
   const vscode = acquireVsCodeApi();
   const salvo = vscode.getState() || {};
   let compacto = !!salvo.compacto;
-  const abertos = Object.assign({ alertas: true, economia: true, evolucao: true, turnos: false, ferramentas: false, sessoes: true, acoes: true, dicas: false }, salvo.abertos);
+  const abertos = Object.assign({ alertas: true, economia: true, evolucao: true, turnos: false, ferramentas: false, sessoes: true, acoes: true, dicas: false, atalhos: true }, salvo.abertos);
   let dados = null;
 
   const $ = (s) => document.querySelector(s);
@@ -113,7 +113,8 @@
         <div class="d">Nenhum sinal de desperdício pelas recomendações da Anthropic.</div></div></div>`;
     }
     return lista.map((a) => `<div class="alerta neon-${a.nivel}"><span class="ponto"></span><div>
-      <div class="t">${esc(a.titulo)}</div><div class="d">${esc(a.detalhe)}</div><div class="a">${esc(a.acao)}</div></div></div>`).join('');
+      <div class="t">${esc(a.titulo)}</div><div class="d">${esc(a.detalhe)}</div><div class="a">${esc(a.acao)}</div>
+      ${a.aplicar && ATALHOS[a.aplicar] ? `<button class="aplicar" data-tec="${a.aplicar}">Aplicar: ${ATALHOS[a.aplicar][0]}</button>` : ''}</div></div>`).join('');
   }
 
   function economiaHtml(eco, dia) {
@@ -129,6 +130,21 @@
     return `<div class="economia">${bloco('Esta sessão', eco)}${bloco('Últimas 24h', dia)}
       <div class="eco-nota">Custo ponderado pelo preço de lista (cache lido 0,1 · escrito 2 · saída 5), simulando handoff + /clear no ponto de handoff, já descontando o handoff e 15k de releitura. Num histórico real de 60 dias, a economia medida foi de 46%.</div></div>`;
   }
+
+  // Atalhos que aplicam as técnicas (mesmos ids de TECNICAS no extension.js).
+  const ATALHOS = {
+    handoffLimpar: ['Handoff + limpar', 'Ctrl+Alt+H', 'resume, limpa e retoma'],
+    conversaNova: ['Conversa nova', 'Ctrl+Alt+N', '/clear: trocou de assunto'],
+    compactar: ['Compactar com foco', 'Ctrl+Alt+C', '/compact mantendo o essencial'],
+    contexto: ['Ver o que pesa', '', '/context'],
+    subagente: ['Subagente', '', 'investigação fora da conversa'],
+    lateral: ['Pergunta lateral', '', '/btw sem entrar no histórico'],
+    modelo: ['Modelo econômico', '', '/model sonnet, /effort low'],
+  };
+  const atalhosHtml = () => `<div class="atalhos">${Object.entries(ATALHOS).map(([id, [nome, tecla, desc]], i) =>
+    `<button class="atalho ${i === 0 ? 'principal' : ''}" data-tec="${id}" title="${desc}">
+      <span class="nome">${nome}</span><span class="desc">${desc}</span>${tecla ? `<kbd>${tecla}</kbd>` : ''}</button>`).join('')}
+    <p class="dica">Ctrl+Alt+T abre todas as técnicas. Comandos com / vão para a área de transferência e o cursor para o chat: Ctrl+V e Enter.</p></div>`;
 
   // Recomendações oficiais (code.claude.com/docs/en/costs e /best-practices), em ordem de impacto.
   const DICAS = [
@@ -167,7 +183,8 @@
       alvo.innerHTML = `<div class="bloco compacto">${anel(s.atual, lim, 56)}
         <div class="dados"><span class="grande num">${fmt(s.atual)} <span style="color:var(--suave);font-size:11px">/ ${fmt(lim.handoff)}</span></span>
         <span class="estado neon-${principal ? principal.nivel : n.cor}">${esc(principal ? principal.titulo : n.nome)}</span>
-        <span class="sub">${esc(s.titulo)}</span></div></div>`;
+        <span class="sub">${esc(s.titulo)}</span></div>
+        <button class="atalho principal mini-atalho" data-tec="handoffLimpar" title="Handoff + limpar (Ctrl+Alt+H)"><span class="nome">Handoff + limpar</span><kbd>Ctrl+Alt+H</kbd></button></div>`;
       return;
     }
 
@@ -196,6 +213,7 @@
           <span class="linha-dado"><span>modelo</span><b class="num">${esc((s.modelo || '—').replace('claude-', ''))}</b></span>
         </div>
       </section>
+      ${secao('atalhos', 'Atalhos', 'limpar e economizar', atalhosHtml())}
       ${secao('alertas', 'Alertas', qtdAlertas || '', `<div class="alertas">${alertasHtml(s.alertas)}</div>`, true)}
       <section class="kpis">${kpis}</section>
       ${secao('economia', 'Economia com handoff', '', economiaHtml(s.economia, dados.economiaDia), true)}
@@ -204,7 +222,6 @@
       ${secao('ferramentas', 'Ferramentas mais usadas', s.ferramentas.length || '', ferr)}
       ${secao('sessoes', 'Sessões de hoje', dados.sessoes.length, sessoesHtml(dados), true)}
       ${secao('acoes', 'Ações', '', `<div class="acoes">
-        <button class="botao principal" data-cmd="copiarHandoff">Copiar /handoff</button>
         <button class="botao" data-cmd="flutuar">Janela flutuante</button>
         <button class="botao" data-cmd="aba">Abrir como aba</button>
         <button class="botao" data-cmd="pastaHandoffs">Pasta de handoffs</button>
@@ -221,6 +238,7 @@
     if (b.id === 'modo') { compacto = !compacto; salvar(); render(); }
     else if (b.id === 'flutuar') vscode.postMessage({ tipo: 'flutuar' });
     else if (b.id === 'menu') vscode.postMessage({ tipo: 'menu' });
+    else if (b.dataset.tec) vscode.postMessage({ tipo: 'tecnica', id: b.dataset.tec });
     else if (b.dataset.id) vscode.postMessage({ tipo: 'fixar', id: b.dataset.id });
     else if (b.dataset.cmd) vscode.postMessage({ tipo: b.dataset.cmd });
   });

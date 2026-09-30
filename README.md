@@ -51,7 +51,7 @@ A barra de status do terminal mostra isso, mas **não aparece na extensão do Cl
 Ou pelo terminal:
 
 ```bash
-code --install-extension gadita-meditor-3.0.0.vsix
+code --install-extension gadita-meditor-3.1.0.vsix
 ```
 
 ### Opção 2: a partir do código
@@ -69,13 +69,27 @@ Requisitos: VS Code 1.90+ e o Claude Code já usado nesta máquina (a extensão 
 
 | Ação | Como |
 |---|---|
-| Abrir o menu (flutuante, aba, lateral) | Clique na barra de status ou no botão `⋯` do painel |
+| Abrir o menu (flutuante, aba, lateral, técnicas) | Clique na barra de status ou no botão `⋯` do painel |
 | Janela flutuante | `Ctrl+Alt+G` (`Cmd+Alt+G` no Mac) ou botão `⧉` |
 | Fixar à direita | Arraste o ícone do Gadita para a barra lateral secundária |
 | Encolher / expandir | Botão `⤡` no topo do painel |
 | Abrir sozinho ao iniciar | Configuração `gaditaMeditor.abrirAoIniciar` = `flutuante` ou `aba` |
 
 A janela flutuante usa as janelas auxiliares do VS Code (solta, compacta e sempre por cima). A aba volta sozinha quando você recarrega o VS Code.
+
+## Atalhos que aplicam as técnicas
+
+| Atalho | Técnica | O que acontece |
+|---|---|---|
+| `Ctrl+Alt+H` | **Handoff + limpar** | Prepara o `/handoff` no chat; quando o Claude salva o handoff e termina a resposta, abre sozinho uma conversa nova, que já retoma de onde parou |
+| `Ctrl+Alt+N` | **Conversa nova** | Equivale ao `/clear`: abre uma conversa limpa (a anterior continua salva) |
+| `Ctrl+Alt+C` | **Compactar com foco** | Pergunta o que deve sobreviver e monta o `/compact <foco>` |
+| `Ctrl+Alt+T` | **Todas as técnicas** | Menu com as anteriores e mais: `/context`, subagente, `/btw`, modelo econômico |
+| `Ctrl+Alt+G` | Janela flutuante | Painel solto e sempre por cima |
+
+Os mesmos atalhos aparecem como botões no painel, e cada alerta tem um botão **Aplicar** com a técnica que o resolve (por exemplo, "Hora do handoff" › Handoff + limpar).
+
+Como funciona: a conversa nova usa o comando da própria extensão do Claude Code (`claude-vscode.newConversation`). Nenhuma extensão pode digitar no chat do Claude, então os comandos com `/` vão para a área de transferência e o cursor vai para a caixa de mensagem: é só `Ctrl+V` e `Enter`. No Mac, troque `Ctrl` por `Cmd`.
 
 ## Alertas
 
@@ -161,6 +175,7 @@ Método: refaz cada sessão turno a turno e simula o recomeço no ponto de hando
 | `gaditaMeditor.janela` | `0` | Tamanho da janela. `0` = automático (1M se a conta já passou de 200k, senão 200k) |
 | `gaditaMeditor.abrirAoIniciar` | `nada` | `flutuante` ou `aba` para abrir sozinho |
 | `gaditaMeditor.notificar` | `true` | Notificação nos alertas vermelhos |
+| `gaditaMeditor.limparAposHandoff` | `true` | No Handoff + limpar, abrir a conversa nova sozinho (ou perguntar antes, se `false`) |
 
 ## Privacidade
 

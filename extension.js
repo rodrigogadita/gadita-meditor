@@ -170,7 +170,7 @@ function alertas(s, lim) {
   if (atual >= lim.handoff) {
     add('vermelho', 'handoff', 'Hora do handoff',
       `Cada mensagem reenvia ${k(atual)} de histórico. A qualidade também cai com a janela cheia.`,
-      'Deixe o Claude gerar o handoff e digite /clear.');
+      'Ctrl+Alt+H: handoff + limpar, e a sessão nova já retoma de onde parou.');
   } else if (atual >= lim.aviso) {
     add('amarelo', 'aviso', 'Contexto crescendo',
       `${k(atual)} na janela; o handoff chega em ${k(lim.handoff)}.`,
@@ -242,6 +242,12 @@ function alertas(s, lim) {
       'Para tarefas simples, /model sonnet ou /effort menor.');
   }
 
+  // Técnica que resolve cada alerta (botão "Aplicar" no painel e na notificação).
+  const APLICAR = {
+    handoff: 'handoffLimpar', 'cache-frio': 'handoffLimpar', pia: 'handoffLimpar', compactacao: 'handoffLimpar',
+    correcoes: 'conversaNova', 'saida-grande': 'subagente', exploracao: 'subagente', base: 'contexto', modelo: 'modelo',
+  };
+  for (const x of a) x.aplicar = APLICAR[x.id] || null;
   const ordem = { vermelho: 0, amarelo: 1, verde: 2 };
   return a.sort((x, y) => ordem[x.nivel] - ordem[y.nivel]);
 }
@@ -263,6 +269,7 @@ function config() {
     janela: c.get('janela') || 0, // 0 = automático
     notificar: c.get('notificar') !== false,
     abrirAoIniciar: c.get('abrirAoIniciar') || 'nada',
+    limparAposHandoff: c.get('limparAposHandoff') !== false,
   };
 }
 
@@ -425,6 +432,7 @@ class Paineis {
     } else if (m.tipo === 'flutuar') this.abrirAba(true);
     else if (m.tipo === 'aba') this.abrirAba(false);
     else if (m.tipo === 'menu') vscode.commands.executeCommand('gaditaMeditor.menu');
+    else if (m.tipo === 'tecnica' && TECNICAS[m.id]) TECNICAS[m.id].fn();
     else if (m.tipo === 'kit') vscode.env.openExternal(vscode.Uri.parse(`${REPO}#kit-de-handoff-opcional`));
   }
 }
@@ -432,8 +440,124 @@ class Paineis {
 const REPO = 'https://github.com/rodrigogadita/gadita-meditor';
 
 async function copiarHandoff() {
-  await vscode.env.clipboard.writeText('/handoff');
-  vscode.window.showInformationMessage('"/handoff" copiado. Cole no chat do Claude e depois digite /clear.');
+  await levarAoChat('/handoff');
+}
+
+// ---------- técnicas: atalhos que aplicam a limpeza ----------
+// Comandos da extensão oficial do Claude Code para VS Code (anthropic.claude-code).
+const CLAUDE_NOVA = 'claude-vscode.newConversation';
+const CLAUDE_FOCO = 'claude-vscode.focus';
+let comandosClaude = null;
+
+async function temComando(id) {
+  if (!comandosClaude) comandosClaude = new Set(await vscode.commands.getCommands(true));
+  return comandosClaude.has(id);
+}
+
+// Nenhuma extensão pode digitar no chat do Claude: copia o comando e põe o cursor na caixa de mensagem.
+async function levarAoChat(texto, dica) {
+  await vscode.env.clipboard.writeText(texto);
+  if (await temComando(CLAUDE_FOCO)) {
+    try { await vscode.commands.executeCommand(CLAUDE_FOCO); } catch { /* chat fechado */ }
+  }
+  vscode.window.setStatusBarMessage(`$(clippy) ${dica || `"${texto.trim()}" pronto: Ctrl+V e Enter no chat do Claude`}`, 10000);
+}
+
+// Equivale ao /clear: abre uma conversa limpa (a anterior continua salva e pode ser retomada).
+async function conversaNova() {
+  if (await temComando(CLAUDE_NOVA)) {
+    await vscode.commands.executeCommand(CLAUDE_NOVA);
+    vscode.window.setStatusBarMessage('$(check) Conversa nova aberta. A anterior continua salva.', 8000);
+    return true;
+  }
+  await levarAoChat('/clear', '"/clear" pronto: cole no Claude Code e envie');
+  return false;
+}
+
+function handoffNovo(desde) {
+  let maisNovo = null, mt = 0;
+  try {
+    for (const n of fs.readdirSync(HANDOFFS)) {
+      if (!n.endsWith('.md') || n.endsWith('.usado.md')) continue;
+      const m = fs.statSync(path.join(HANDOFFS, n)).mtimeMs;
+      if (m > desde - 1000 && m > mt) { mt = m; maisNovo = path.join(HANDOFFS, n); }
+    }
+  } catch { /* pasta ainda não existe */ }
+  return maisNovo;
+}
+
+// Handoff + limpar: pede o handoff; quando o arquivo aparece e a resposta termina, abre a conversa nova.
+let esperaHandoff = null;
+async function handoffLimpar() {
+  const inicio = Date.now();
+  const s = mon.corrente();
+  await levarAoChat('/handoff', 'Ctrl+V e Enter no chat. Quando o handoff for salvo, eu abro a conversa nova.');
+  if (esperaHandoff) clearInterval(esperaHandoff);
+  let achado = null;
+  esperaHandoff = setInterval(async () => {
+    if (Date.now() - inicio > 15 * 60000) { clearInterval(esperaHandoff); esperaHandoff = null; return; }
+    achado = achado || handoffNovo(inicio);
+    if (!achado) return;
+    // Espera a resposta do Claude terminar (registro da sessão parado há 5s) antes de limpar.
+    if (s) {
+      try { if (Date.now() - fs.statSync(s.arquivo).mtimeMs < 5000) return; } catch { /* segue */ }
+    }
+    clearInterval(esperaHandoff); esperaHandoff = null;
+    const kit = fs.existsSync(path.join(GUARDA, 'hook.py'));
+    const retomar = async () => {
+      const limpou = await conversaNova();
+      if (!kit && limpou) {
+        await levarAoChat(`Leia ${achado.replace(/\\/g, '/')} e continue do próximo passo.`,
+          'Pedido de retomada pronto: Ctrl+V e Enter na conversa nova.');
+      }
+    };
+    if (config().limparAposHandoff) {
+      await retomar();
+      vscode.window.showInformationMessage(`Handoff salvo (${path.basename(achado)}) e conversa nova aberta.${kit ? ' O contexto volta sozinho.' : ''}`);
+    } else {
+      const r = await vscode.window.showInformationMessage(`Handoff salvo: ${path.basename(achado)}.`, 'Abrir conversa nova', 'Ver handoff');
+      if (r === 'Abrir conversa nova') await retomar();
+      if (r === 'Ver handoff') vscode.window.showTextDocument(vscode.Uri.file(achado));
+    }
+  }, 1500);
+}
+
+async function compactarComFoco() {
+  const foco = await vscode.window.showInputBox({
+    title: 'Compactar com foco',
+    prompt: 'O que precisa sobreviver ao resumo? (compactar lê a conversa inteira: prefira handoff + limpar quando for recomeçar)',
+    placeHolder: 'ex.: decisões do módulo de pagamentos, arquivos alterados e testes pendentes',
+  });
+  if (foco === undefined) return;
+  await levarAoChat(`/compact ${foco}`.trim());
+}
+
+async function modeloEconomico() {
+  const r = await vscode.window.showQuickPick([
+    { label: '/model sonnet', description: 'a maior parte do código, custa menos que o Opus' },
+    { label: '/model haiku', description: 'tarefas bem simples e repetitivas' },
+    { label: '/effort low', description: 'menos raciocínio no mesmo modelo' },
+    { label: '/model opus', description: 'voltar ao Opus para arquitetura e problemas difíceis' },
+  ], { title: 'Modelo e esforço sob medida' });
+  if (r) await levarAoChat(r.label);
+}
+
+const TECNICAS = {
+  handoffLimpar: { fn: handoffLimpar, icone: 'sparkle', nome: 'Handoff + limpar', tecla: 'Ctrl+Alt+H', desc: 'resume, limpa e retoma na conversa nova' },
+  conversaNova: { fn: conversaNova, icone: 'clear-all', nome: 'Conversa nova (/clear)', tecla: 'Ctrl+Alt+N', desc: 'trocou de assunto: comece limpo' },
+  compactar: { fn: compactarComFoco, icone: 'fold', nome: 'Compactar com foco', tecla: 'Ctrl+Alt+C', desc: 'resume mantendo só o que você escolher' },
+  contexto: { fn: () => levarAoChat('/context'), icone: 'pie-chart', nome: 'Ver o que pesa (/context)', tecla: '', desc: 'sistema, memória, ferramentas e conversa' },
+  subagente: { fn: () => levarAoChat('Use um subagente para investigar: '), icone: 'hubot', nome: 'Investigar com subagente', tecla: '', desc: 'o volume fica fora da conversa principal' },
+  lateral: { fn: () => levarAoChat('/btw '), icone: 'comment', nome: 'Pergunta lateral (/btw)', tecla: '', desc: 'a resposta não entra no histórico' },
+  modelo: { fn: modeloEconomico, icone: 'dashboard', nome: 'Modelo econômico', tecla: '', desc: '/model sonnet, /effort low' },
+};
+
+async function tecnicas() {
+  const itens = Object.entries(TECNICAS).map(([id, t]) => ({
+    id, label: `$(${t.icone}) ${t.nome}`, description: t.tecla, detail: t.desc,
+  }));
+  const r = await vscode.window.showQuickPick(itens, { title: 'Gadita Meditor · técnicas que economizam', placeHolder: 'O que aplicar agora?' });
+  if (r) TECNICAS[r.id].fn();
 }
 
 let mon, paineis, barra, atualizarTudo;
@@ -461,8 +585,10 @@ function atualizarBarra() {
     const chave = `${s.id}:${a.id}`;
     if (mon.notificados.has(chave)) continue;
     mon.notificados.add(chave);
-    vscode.window.showWarningMessage(`Gadita Meditor · ${a.titulo}. ${a.acao}`, 'Copiar /handoff', 'Abrir flutuante').then((r) => {
-      if (r === 'Copiar /handoff') copiarHandoff();
+    const t = a.aplicar && TECNICAS[a.aplicar];
+    const botoes = t ? [t.nome, 'Abrir flutuante'] : ['Abrir flutuante'];
+    vscode.window.showWarningMessage(`Gadita Meditor · ${a.titulo}. ${a.acao}`, ...botoes).then((r) => {
+      if (t && r === t.nome) t.fn();
       if (r === 'Abrir flutuante') paineis.abrirAba(true);
     });
   }
@@ -473,8 +599,9 @@ async function menu() {
     { label: '$(multiple-windows) Janela flutuante', description: 'sempre por cima, arraste para onde quiser', id: 'flutuar' },
     { label: '$(split-horizontal) Abrir como aba', description: 'arraste a aba para qualquer lado do editor', id: 'aba' },
     { label: '$(layout-sidebar-left) Barra lateral', description: 'arraste o ícone para a direita para fixar lá', id: 'lateral' },
+    { label: 'técnicas', kind: vscode.QuickPickItemKind.Separator },
+    ...Object.entries(TECNICAS).map(([id, t]) => ({ label: `$(${t.icone}) ${t.nome}`, description: t.tecla, id: `tec:${id}` })),
     { label: '', kind: vscode.QuickPickItemKind.Separator },
-    { label: '$(copy) Copiar /handoff', id: 'handoff' },
     { label: '$(folder-opened) Pasta de handoffs', id: 'pasta' },
     { label: '$(gear) Configurações', id: 'config' },
   ];
@@ -483,7 +610,7 @@ async function menu() {
   if (r.id === 'flutuar') paineis.abrirAba(true);
   else if (r.id === 'aba') paineis.abrirAba(false);
   else if (r.id === 'lateral') vscode.commands.executeCommand('workbench.view.extension.gaditaMeditor');
-  else if (r.id === 'handoff') copiarHandoff();
+  else if (r.id.startsWith('tec:')) TECNICAS[r.id.slice(4)].fn();
   else if (r.id === 'pasta') vscode.commands.executeCommand('gaditaMeditor.pastaHandoffs');
   else if (r.id === 'config') vscode.commands.executeCommand('workbench.action.openSettings', 'gaditaMeditor');
 }
@@ -505,6 +632,14 @@ function activate(ctx) {
     vscode.commands.registerCommand('gaditaMeditor.flutuar', () => paineis.abrirAba(true)),
     vscode.commands.registerCommand('gaditaMeditor.aba', () => paineis.abrirAba(false)),
     vscode.commands.registerCommand('gaditaMeditor.copiarHandoff', copiarHandoff),
+    vscode.commands.registerCommand('gaditaMeditor.tecnicas', tecnicas),
+    vscode.commands.registerCommand('gaditaMeditor.handoffLimpar', handoffLimpar),
+    vscode.commands.registerCommand('gaditaMeditor.conversaNova', conversaNova),
+    vscode.commands.registerCommand('gaditaMeditor.compactar', compactarComFoco),
+    vscode.commands.registerCommand('gaditaMeditor.contexto', TECNICAS.contexto.fn),
+    vscode.commands.registerCommand('gaditaMeditor.subagente', TECNICAS.subagente.fn),
+    vscode.commands.registerCommand('gaditaMeditor.lateral', TECNICAS.lateral.fn),
+    vscode.commands.registerCommand('gaditaMeditor.modelo', modeloEconomico),
     vscode.commands.registerCommand('gaditaMeditor.atualizar', () => { mon.varrer(); atualizarTudo(); }),
     vscode.commands.registerCommand('gaditaMeditor.pastaHandoffs', () => {
       fs.mkdirSync(HANDOFFS, { recursive: true });

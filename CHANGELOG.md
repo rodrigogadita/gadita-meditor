@@ -1,5 +1,10 @@
 # Histórico
 
+## 3.1.0
+- Atalhos que aplicam as técnicas: `Ctrl+Alt+H` handoff + limpar (abre a conversa nova sozinho quando o handoff é salvo), `Ctrl+Alt+N` conversa nova, `Ctrl+Alt+C` compactar com foco, `Ctrl+Alt+T` todas as técnicas.
+- Seção Atalhos no painel e botão Aplicar em cada alerta; atalho rápido no modo encolhido.
+- Notificações dos alertas vermelhos com a técnica que resolve.
+
 ## 3.0.0
 - Primeira versão pública.
 - Menu na barra de status: janela flutuante, aba ou barra lateral. Atalho `Ctrl+Alt+G`.

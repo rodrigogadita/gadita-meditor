@@ -135,3 +135,21 @@ details.bloco[open] > summary { border-bottom: 1px solid var(--linha); }
 .dica-item .dica-n { color: var(--acento); font-size: 10.5px; padding-top: 1px; }
 .dica-item .t { font-weight: 600; }
 .dica-item .d { color: var(--suave); }
+
+/* atalhos */
+.atalhos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.atalho { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; align-items: center; text-align: left; background: transparent; border: 1px solid var(--linha-forte); padding: 8px 9px; }
+.atalho:hover { border-color: var(--acento); }
+.atalho:hover .nome { color: var(--acento); }
+.atalho .nome { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.atalho .desc { grid-column: 1 / -1; color: var(--suave); font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.atalho kbd { font: 500 9.5px/1 var(--mono); color: var(--suave); border: 1px solid var(--linha-forte); padding: 3px 4px; }
+.atalho.principal { grid-column: 1 / -1; border-color: var(--acento); }
+.atalho.principal .nome { color: var(--acento); text-shadow: 0 0 calc(8px * var(--brilho)) color-mix(in srgb, var(--acento) 55%, transparent); }
+.atalhos .dica { grid-column: 1 / -1; }
+.compacto .mini-atalho { grid-column: 1 / -1; padding: 6px 9px; }
+.aplicar { margin-top: 8px; background: transparent; border: 1px solid currentColor; color: inherit; padding: 4px 8px; font: 600 10.5px/1.2 var(--sans); }
+.aplicar:hover { background: color-mix(in srgb, currentColor 12%, transparent); }
+.atalho.principal kbd { grid-row: 1; grid-column: 2; }
+.atalho:not(.principal) { grid-template-columns: minmax(0, 1fr); }
+.atalho:not(.principal) kbd { justify-self: start; margin-top: 5px; }

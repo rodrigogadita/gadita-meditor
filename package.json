@@ -1,0 +1,64 @@
+{
+  "name": "gadita-meditor",
+  "displayName": "Gadita Meditor",
+  "description": "Monitor de janela de contexto do Claude Code no VS Code: consumo por turno, alertas de boas práticas da Anthropic, economia estimada, handoff e painel flutuante.",
+  "version": "3.0.0",
+  "publisher": "rodrigogadita",
+  "author": { "name": "Rodrigo Silva", "url": "https://github.com/rodrigogadita" },
+  "license": "MIT",
+  "icon": "media/icone.png",
+  "repository": { "type": "git", "url": "https://github.com/rodrigogadita/gadita-meditor" },
+  "bugs": { "url": "https://github.com/rodrigogadita/gadita-meditor/issues" },
+  "galleryBanner": { "color": "#07090d", "theme": "dark" },
+  "keywords": ["claude", "claude code", "tokens", "context window", "anthropic", "produtividade", "handoff"],
+  "engines": { "vscode": "^1.90.0" },
+  "categories": ["Visualization", "Other"],
+  "activationEvents": ["onStartupFinished", "onWebviewPanel:gaditaMeditor.flutuante"],
+  "main": "./extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        { "id": "gaditaMeditor", "title": "Gadita Meditor", "icon": "media/icone.svg" }
+      ]
+    },
+    "views": {
+      "gaditaMeditor": [
+        { "type": "webview", "id": "gaditaMeditor.painel", "name": "Gadita Meditor" }
+      ]
+    },
+    "commands": [
+      { "command": "gaditaMeditor.menu", "title": "Gadita Meditor: opções" },
+      { "command": "gaditaMeditor.flutuar", "title": "Gadita Meditor: abrir em janela flutuante" },
+      { "command": "gaditaMeditor.aba", "title": "Gadita Meditor: abrir como aba" },
+      { "command": "gaditaMeditor.abrir", "title": "Gadita Meditor: abrir na barra lateral" },
+      { "command": "gaditaMeditor.copiarHandoff", "title": "Gadita Meditor: copiar /handoff" },
+      { "command": "gaditaMeditor.atualizar", "title": "Gadita Meditor: atualizar agora" },
+      { "command": "gaditaMeditor.pastaHandoffs", "title": "Gadita Meditor: abrir pasta de handoffs" }
+    ],
+    "keybindings": [
+      { "command": "gaditaMeditor.flutuar", "key": "ctrl+alt+g", "mac": "cmd+alt+g" }
+    ],
+    "configuration": {
+      "title": "Gadita Meditor",
+      "properties": {
+        "gaditaMeditor.janela": {
+          "type": "number",
+          "default": 0,
+          "description": "Tamanho da janela de contexto em tokens. 0 = automático (1.000.000 se a conta já passou de 200k, senão 200.000)."
+        },
+        "gaditaMeditor.abrirAoIniciar": {
+          "type": "string",
+          "enum": ["nada", "flutuante", "aba"],
+          "enumDescriptions": ["Não abre sozinho", "Abre a janela flutuante ao iniciar o VS Code", "Abre como aba ao iniciar o VS Code"],
+          "default": "nada",
+          "description": "Abrir o painel automaticamente ao iniciar."
+        },
+        "gaditaMeditor.notificar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Mostrar notificação quando surgir um alerta vermelho."
+        }
+      }
+    }
+  }
+}

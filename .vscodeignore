@@ -1,0 +1,6 @@
+.gitignore
+docs/**
+kit/**
+ferramentas/**
+media/icone-app.svg
+*.vsix

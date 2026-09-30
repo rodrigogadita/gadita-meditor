@@ -1,0 +1,137 @@
+:root {
+  --bg: #07090d;
+  --painel: #0c1016;
+  --linha: #161d27;
+  --linha-forte: #243040;
+  --texto: #e3ebf4;
+  --suave: #74839a;
+  --acento: #22d3ee;
+  --verde: #22e27a;
+  --amarelo: #ffd60a;
+  --vermelho: #ff3b4e;
+  --brilho: 1;
+  --mono: var(--vscode-editor-font-family, "Cascadia Code", Consolas, monospace);
+  --sans: var(--vscode-font-family, "Segoe UI", system-ui, sans-serif);
+}
+body.vscode-light {
+  --bg: #f5f7fa;
+  --painel: #ffffff;
+  --linha: #e3e8ee;
+  --linha-forte: #cdd6e0;
+  --texto: #121b25;
+  --suave: #5c6b7c;
+  --acento: #0891b2;
+  --verde: #16a34a;
+  --amarelo: #ca8a04;
+  --vermelho: #dc2626;
+  --brilho: 0;
+}
+
+* { box-sizing: border-box; }
+html, body { overflow-x: hidden; }
+body { margin: 0; background: var(--bg); color: var(--texto); font: 12px/1.5 var(--sans); }
+button { font: inherit; color: inherit; cursor: pointer; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+/* neon: brilho só em traço e texto-chave, nunca em caixas */
+.neon-verde { color: var(--verde); } .neon-amarelo { color: var(--amarelo); } .neon-vermelho { color: var(--vermelho); }
+.brilha { filter: drop-shadow(0 0 calc(3px * var(--brilho)) currentColor) drop-shadow(0 0 calc(8px * var(--brilho)) color-mix(in srgb, currentColor 45%, transparent)); }
+.brilha-texto { text-shadow: 0 0 calc(6px * var(--brilho)) color-mix(in srgb, currentColor 70%, transparent); }
+
+.topo { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px 10px; }
+.marca { font: 500 10.5px/1 var(--mono); letter-spacing: .26em; color: var(--suave); display: flex; align-items: center; gap: 9px; }
+.marca b { color: var(--acento); font-weight: 600; text-shadow: 0 0 calc(8px * var(--brilho)) color-mix(in srgb, var(--acento) 60%, transparent); }
+.pulso { width: 6px; height: 6px; border-radius: 50%; background: var(--acento); box-shadow: 0 0 calc(8px * var(--brilho)) var(--acento); animation: pisca 2.4s ease-in-out infinite; }
+@keyframes pisca { 50% { opacity: .3; } }
+.acoes-topo { display: flex; gap: 6px; }
+.icone { background: transparent; border: 1px solid var(--linha-forte); width: 24px; height: 22px; display: grid; place-items: center; padding: 0; color: var(--suave); }
+.icone:hover { border-color: var(--acento); color: var(--acento); }
+.icone svg { width: 12px; height: 12px; }
+
+
+#conteudo { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 12px; }
+.vazio { color: var(--suave); margin: 8px 0; }
+.bloco { background: var(--painel); border: 1px solid var(--linha); }
+.rotulo { font: 500 9.5px/1 var(--mono); letter-spacing: .18em; text-transform: uppercase; color: var(--suave); }
+
+/* herói */
+.heroi { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 16px; padding: 16px; align-items: center; }
+.anel text { font-family: var(--mono); fill: currentColor; }
+.info-heroi { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.titulo-sessao { font-weight: 600; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.linha-dado { display: flex; justify-content: space-between; gap: 8px; color: var(--suave); }
+.linha-dado b { color: var(--texto); font-weight: 600; }
+.estado { display: inline-flex; align-items: center; gap: 7px; font: 600 10px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; }
+.estado::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 calc(8px * var(--brilho)) currentColor; }
+
+/* alertas */
+.alertas { display: flex; flex-direction: column; }
+.alerta { display: grid; grid-template-columns: 8px minmax(0, 1fr); gap: 10px; padding: 10px 12px; border-top: 1px solid var(--linha); }
+.alerta:first-child { border-top: 0; }
+.alerta .ponto { width: 8px; height: 8px; border-radius: 50%; background: currentColor; margin-top: 4px; box-shadow: 0 0 calc(8px * var(--brilho)) currentColor; }
+.alerta .t { font-weight: 600; color: var(--texto); }
+.alerta .d { color: var(--suave); margin-top: 1px; }
+.alerta .a { color: var(--texto); margin-top: 4px; }
+.alerta .a::before { content: "→ "; color: currentColor; }
+
+/* KPIs */
+.kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 1px; background: var(--linha); border: 1px solid var(--linha); }
+.kpi { background: var(--painel); padding: 10px 11px; display: flex; flex-direction: column; gap: 4px; }
+.kpi .valor { font: 600 17px/1.1 var(--mono); font-variant-numeric: tabular-nums; }
+.kpi .nota { color: var(--suave); font-size: 10.5px; }
+
+/* economia */
+.economia { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.eco-linha { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.eco-linha .trilho { height: 6px; background: var(--linha); }
+.eco-linha .trilho div { height: 100%; }
+.eco-nota { color: var(--suave); font-size: 10.5px; }
+
+/* seções recolhíveis */
+details.bloco > summary { list-style: none; cursor: pointer; padding: 10px 12px; display: flex; align-items: center; gap: 8px; }
+details.bloco > summary::-webkit-details-marker { display: none; }
+details.bloco > summary .extra { margin-left: auto; color: var(--suave); }
+details.bloco > summary::after { content: "+"; font: 500 12px/1 var(--mono); color: var(--suave); width: 10px; text-align: center; }
+details.bloco[open] > summary::after { content: "−"; }
+details.bloco[open] > summary { border-bottom: 1px solid var(--linha); }
+.corpo { padding: 12px; }
+.grafico { width: 100%; display: block; overflow: visible; }
+.grafico text { font: 9.5px var(--mono); fill: var(--suave); }
+.grafico .valor-rotulo { fill: var(--texto); font-weight: 600; }
+.legenda { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; color: var(--suave); font-size: 10.5px; }
+.legenda i { display: inline-block; width: 10px; height: 2px; vertical-align: middle; margin-right: 5px; }
+
+.hbar { display: grid; grid-template-columns: minmax(70px, 38%) 1fr auto; gap: 8px; align-items: center; margin: 6px 0; }
+.hbar .nome { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--suave); }
+.hbar .trilho { height: 5px; background: var(--linha); }
+.hbar .trilho div { height: 100%; background: var(--acento); }
+
+.sessao { width: 100%; text-align: left; background: transparent; border: 0; border-top: 1px solid var(--linha); padding: 9px 12px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; }
+.sessao:first-child { border-top: 0; }
+.sessao:hover { background: color-mix(in srgb, var(--acento) 5%, transparent); }
+.sessao.ativa { background: color-mix(in srgb, var(--acento) 8%, transparent); }
+.sessao.ativa .t { color: var(--acento); }
+.sessao .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+.sessao .m { color: var(--suave); font-size: 10.5px; }
+.sessao .mini { grid-column: 1 / -1; height: 2px; background: var(--linha); margin-top: 5px; }
+.sessao .mini div { height: 100%; }
+
+.acoes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.botao { background: transparent; border: 1px solid var(--linha-forte); padding: 7px 8px; text-align: center; }
+.botao:hover { border-color: var(--acento); color: var(--acento); }
+.botao.principal { border-color: var(--acento); color: var(--acento); grid-column: 1 / -1; }
+.dica { grid-column: 1 / -1; color: var(--suave); font-size: 10.5px; margin: 4px 0 0; }
+
+/* encolhido */
+.compacto { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: center; padding: 12px; }
+.compacto .dados { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.compacto .grande { font: 600 17px/1 var(--mono); }
+.compacto .sub { color: var(--suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rodape { color: var(--suave); font-size: 10px; text-align: right; }
+
+/* técnicas */
+.dica-item { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; padding: 7px 0; border-top: 1px solid var(--linha); }
+.dica-item:first-child { border-top: 0; padding-top: 0; }
+.dica-item .dica-n { color: var(--acento); font-size: 10.5px; padding-top: 1px; }
+.dica-item .t { font-weight: 600; }
+.dica-item .d { color: var(--suave); }

@@ -117,7 +117,7 @@
       ${a.aplicar && ATALHOS[a.aplicar] ? `<button class="aplicar" data-tec="${a.aplicar}">Aplicar: ${ATALHOS[a.aplicar][0]}</button>` : ''}</div></div>`).join('');
   }
 
-  function economiaHtml(eco, dia) {
+  function economiaHtml(eco, dia, realL) {
     const linha = (rotulo, val, max, cor) => `<div class="eco-linha"><span class="rotulo">${rotulo}</span>
       <span class="trilho"><div class="${cor === 'verde' ? 'brilha neon-verde' : ''}" style="width:${max ? (val / max) * 100 : 0}%;background:${v(cor)}"></div></span><span class="num">${fmt(val)}</span></div>`;
     const bloco = (titulo, e) => {
@@ -127,7 +127,12 @@
         <b class="num ${ganho > 0.05 ? 'neon-verde brilha-texto' : ''}">${ganho > 0.005 ? '−' + pct(ganho) : 'sem ganho'}</b></div>
         ${linha('como foi', e.real, e.real, 'suave')}${linha('com handoff', e.sim, e.real, 'verde')}</div>`;
     };
-    return `<div class="economia">${bloco('Esta sessão', eco)}${bloco('Últimas 24h', dia)}
+    const realHtml = realL && realL.limpezas ? `<div><div class="linha-dado" style="margin-bottom:6px"><span>Limpezas feitas (24h)</span>
+        <b class="num neon-verde brilha-texto">−${pct(1 - realL.real / realL.semLimpar)}</b></div>
+        ${linha('sem limpar', realL.semLimpar, realL.semLimpar, 'suave')}${linha('real', realL.real, realL.semLimpar, 'verde')}
+        <div class="eco-nota">${realL.limpezas} ${realL.limpezas > 1 ? 'limpezas' : 'limpeza'} · ${fmt(realL.poupados)} tokens deixaram de ser reenviados (${pct(realL.poupados / (realL.poupados + realL.processados))} do que seria processado).</div></div>`
+      : '<div class="eco-nota">Ainda sem limpezas medidas nas últimas 24h. Depois do próximo /clear, a economia real aparece aqui.</div>';
+    return `<div class="economia">${realHtml}${bloco('Esta sessão (simulado)', eco)}${bloco('Últimas 24h (simulado)', dia)}
       <div class="eco-nota">Custo ponderado pelo preço de lista (cache lido 0,1 · escrito 2 · saída 5), simulando handoff + /clear no ponto de handoff, já descontando o handoff e 15k de releitura. Num histórico real de 60 dias, a economia medida foi de 46%.</div></div>`;
   }
 
@@ -216,7 +221,7 @@
       ${secao('atalhos', 'Atalhos', 'limpar e economizar', atalhosHtml())}
       ${secao('alertas', 'Alertas', qtdAlertas || '', `<div class="alertas">${alertasHtml(s.alertas)}</div>`, true)}
       <section class="kpis">${kpis}</section>
-      ${secao('economia', 'Economia com handoff', '', economiaHtml(s.economia, dados.economiaDia), true)}
+      ${secao('economia', 'Economia com handoff', '', economiaHtml(s.economia, dados.economiaDia, dados.economiaReal), true)}
       ${secao('evolucao', 'Evolução da janela', `${s.turnos} turnos`, grafLinha(s, lim, larg))}
       ${secao('turnos', 'Saída por turno', fmt(s.saidaTotal), grafBarras(s.saidas, larg))}
       ${secao('ferramentas', 'Ferramentas mais usadas', s.ferramentas.length || '', ferr)}

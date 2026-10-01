@@ -54,6 +54,7 @@ class Sessao {
     this.turnos = []; this.porMsg = new Map(); this.compactacoes = []; this.falhasCache = [];
     this.prompts = 0; this.textos = []; this.ferramentas = {}; this.leiturasDesdePrompt = 0;
     this.titulo = ''; this.modelo = ''; this.cwd = ''; this.inicio = 0; this.ultimaAtividade = 0; this.mtime = 0;
+    this.ultimoPrompt = 0; this.limpaEm = 0; // limpaEm: sessão aberta por /clear
   }
   ler() {
     let st;
@@ -82,9 +83,14 @@ class Sessao {
     if (d.cwd) this.cwd = d.cwd;
     if (d.type === 'ai-title' && d.aiTitle) { this.titulo = d.aiTitle; return; }
     if (d.isSidechain) return;
+    if (d.type === 'user' && !this.limpaEm && d.message && typeof d.message.content === 'string'
+      && d.message.content.includes('<command-name>/clear</command-name>')) {
+      this.limpaEm = t || Date.now(); this.ultimoPrompt = this.limpaEm;
+      return;
+    }
     if (d.type === 'user' && d.origin && d.origin.kind === 'human') {
       this.prompts++; this.leiturasDesdePrompt = 0;
-      if (t) this.ultimaAtividade = t;
+      if (t) { this.ultimaAtividade = t; this.ultimoPrompt = t; }
       const c = d.message && d.message.content;
       const texto = typeof c === 'string' ? c : (Array.isArray(c) ? c.filter((x) => x.type === 'text').map((x) => x.text).join(' ') : '');
       this.textos.push(texto.slice(0, 400));
@@ -314,8 +320,40 @@ class Monitor {
     if (this.maiorVisto > 200000 || (s && /\[1m\]|-1m\b/i.test(s.modelo))) return 1000000;
     return 200000;
   }
-  lista() { return [...this.sessoes.values()].filter((s) => s.turnos.length).sort((a, b) => b.mtime - a.mtime); }
+  // Sessões com resposta ou recém-abertas por /clear, da mais usada por você para a menos.
+  lista() {
+    const uso = (s) => s.ultimoPrompt || s.inicio || s.mtime;
+    return [...this.sessoes.values()].filter((s) => s.turnos.length || s.limpaEm).sort((a, b) => uso(b) - uso(a));
+  }
+  // Atual = onde você mandou o último pedido (com várias conversas em paralelo, a que grava por último pode ser outra).
   corrente() { const l = this.lista(); return l.find((s) => s.id === this.fixada) || l[0]; }
+  // Economia real das limpezas: cada turno depois do /clear deixa de reenviar o que a sessão anterior carregava.
+  economiaReal() {
+    const lista = [...this.sessoes.values()];
+    let limpezas = 0, poupados = 0, processados = 0, real = 0, semLimpar = 0;
+    for (const s of lista) {
+      if (!s.limpaEm || !s.turnos.length) continue;
+      // Sessão anterior: mesma pasta, último pedido mais recente antes do /clear (até 6h antes).
+      const ant = lista.filter((x) => x !== s && x.turnos.length && x.cwd === s.cwd && x.ultimoPrompt && x.ultimoPrompt <= s.limpaEm && s.limpaEm - x.ultimoPrompt < 6 * 3600000)
+        .sort((a, b) => b.ultimoPrompt - a.ultimoPrompt)[0];
+      if (!ant) continue;
+      const fim = ant.turnos.filter((x) => x.t <= s.limpaEm).pop();
+      if (!fim) continue;
+      const base = s.turnos[0].ctx;
+      const peso = Math.max(fim.ctx - base, 0);
+      if (!peso) continue;
+      limpezas++;
+      for (const x of s.turnos) {
+        poupados += peso;
+        processados += x.ctx;
+        const custo = x.entrada * P.entrada + x.escrita * P.escrita + x.leitura * P.leitura + x.saida * P.saida;
+        real += custo;
+        semLimpar += custo + peso * P.leitura; // o histórico anterior viria do cache, a cada turno
+      }
+      real += 0; // a reconstrução do cache da sessão nova já está no custo real do primeiro turno
+    }
+    return { limpezas, poupados, processados, real, semLimpar };
+  }
   // Alimenta o hook do kit de handoff, se ele estiver instalado (~/.claude/context-guard).
   gravarEstado(s) {
     if (!fs.existsSync(GUARDA)) return;
@@ -334,14 +372,15 @@ function montarDados(mon) {
   const lista = mon.lista();
   const s = mon.corrente();
   const sessoes = lista.map((x) => ({
-    id: x.id, titulo: x.titulo || '(sem título)', projeto: nomeProjeto(x.projeto),
+    id: x.id, titulo: x.titulo || (x.limpaEm ? 'Conversa nova (após /clear)' : '(sem título)'), projeto: nomeProjeto(x.projeto),
     mtime: x.mtime, atual: x.atual(), prompts: x.prompts,
   }));
   let realDia = 0, simDia = 0;
   for (const x of lista) { const r = simular(x.turnos, lim.handoff); realDia += r.real; simDia += r.sim; }
   const economiaDia = { real: realDia, sim: simDia };
+  const economiaReal = mon.economiaReal();
   const kit = fs.existsSync(path.join(GUARDA, 'hook.py'));
-  if (!s) return { lim, sessoes, economiaDia, kit, s: null };
+  if (!s) return { lim, sessoes, economiaDia, economiaReal, kit, s: null };
 
   const turnos = s.turnos;
   const rec = turnos.slice(-10);
@@ -351,9 +390,9 @@ function montarDados(mon) {
   const entradaTotal = turnos.reduce((a, t) => a + t.ctx, 0);
   const passo = Math.max(1, Math.ceil(turnos.length / 160));
   return {
-    lim, sessoes, economiaDia, kit,
+    lim, sessoes, economiaDia, economiaReal, kit,
     s: {
-      id: s.id, titulo: s.titulo || '(sem título)', projeto: nomeProjeto(s.projeto), modelo: s.modelo,
+      id: s.id, titulo: s.titulo || (s.limpaEm ? 'Conversa nova (após /clear)' : '(sem título)'), nova: !!s.limpaEm && !s.turnos.length, projeto: nomeProjeto(s.projeto), modelo: s.modelo,
       fixada: mon.fixada === s.id, mtime: s.mtime, atual,
       pico: turnos.reduce((a, t) => Math.max(a, t.ctx), 0),
       turnos: turnos.length, prompts: s.prompts,

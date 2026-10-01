@@ -1,5 +1,10 @@
 # Histórico
 
+## 3.1.2
+- Corrigido: depois do `/clear` o painel continuava mostrando os tokens antigos. A sessão nova (ainda sem resposta) não aparecia, e com várias conversas abertas o painel seguia a que gravou por último, que podia ser outra.
+- Sessão atual agora é a que recebeu o seu último pedido; a conversa recém-limpa aparece na hora.
+- Novo: economia real das limpezas feitas (tokens que deixaram de ser reenviados e custo ponderado), além da estimativa simulada.
+
 ## 3.1.0
 - Atalhos que aplicam as técnicas: `Ctrl+Alt+H` handoff + limpar (abre a conversa nova sozinho quando o handoff é salvo), `Ctrl+Alt+N` conversa nova, `Ctrl+Alt+C` compactar com foco, `Ctrl+Alt+T` todas as técnicas.
 - Seção Atalhos no painel e botão Aplicar em cada alerta; atalho rápido no modo encolhido.

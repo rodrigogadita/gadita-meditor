@@ -33,7 +33,7 @@ A barra de status do terminal mostra isso, mas **não aparece na extensão do Cl
 | **Barra de status** | `169k · 84%` (tokens na janela e % do ponto de handoff), em verde, amarelo ou vermelho, com o número de alertas ativos. |
 | **Anel de handoff** | 100% = hora de fazer handoff e limpar. A marca amarela é o aviso. |
 | **Alertas** | 10 sinais de desperdício tirados da documentação oficial da Anthropic (tabela abaixo). |
-| **Economia estimada** | Quanto a sessão atual e as últimas 24h custariam com handoff no ponto certo. |
+| **Economia real e estimada** | Quanto as limpezas que você fez pouparam de verdade, e quanto a sessão atual e as últimas 24h custariam com handoff no ponto certo. |
 | **Evolução da janela** | Tokens por turno, linhas de aviso e handoff, compactações marcadas. |
 | **Sessões do dia** | Todas as conversas das últimas 24h; clique para acompanhar outra. |
 | **Onde você quiser** | Barra lateral, lateral direita, aba do editor ou **janela flutuante sempre por cima**. |
@@ -51,7 +51,7 @@ A barra de status do terminal mostra isso, mas **não aparece na extensão do Cl
 Ou pelo terminal:
 
 ```bash
-code --install-extension gadita-meditor-3.1.0.vsix
+code --install-extension gadita-meditor-3.1.2.vsix
 ```
 
 ### Opção 2: a partir do código

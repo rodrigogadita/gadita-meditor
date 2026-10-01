@@ -2,7 +2,7 @@
   "name": "gadita-meditor",
   "displayName": "Gadita Meditor",
   "description": "Monitor de janela de contexto do Claude Code no VS Code: consumo por turno, alertas de boas práticas da Anthropic, economia estimada, handoff e painel flutuante.",
-  "version": "3.1.0",
+  "version": "3.1.2",
   "publisher": "rodrigogadita",
   "author": {
     "name": "Rodrigo Silva",
